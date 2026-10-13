@@ -1,0 +1,15 @@
+{
+  "worker_url": "https://btc-hash-credential-server.btc-nonce-668442ed.workers.dev",
+  "payout_address": "REPLACE_WITH_USER_BTC_ADDRESS",
+  "nonces_to_try": [
+    0,
+    1,
+    42,
+    12345,
+    999999,
+    123456789,
+    2147483647,
+    4294967295
+  ],
+  "log_level": "INFO"
+}

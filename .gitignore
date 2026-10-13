@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+venv/
+.venv/
+*.egg-info/
+
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Local settings
+.env
+config/miner_config.local.json
+node_modules/
+.wrangler/
+.dev.vars*
+!.dev.vars.example

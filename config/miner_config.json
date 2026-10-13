@@ -1,0 +1,28 @@
+{
+  "network": "mainnet",
+  "rpc": {
+    "host": "127.0.0.1",
+    "port": 8332,
+    "user": "your_rpc_username",
+    "password": "your_rpc_password",
+    "api_key": "your_hosted_node_api_key_if_applicable"
+  },
+  "block_header_template": {
+    "version": 536870912,
+    "previous_block_hash": "0000000000000000000000000000000000000000000000000000000000000001",
+    "merkle_root": "0000000000000000000000000000000000000000000000000000000000000001",
+    "timestamp": 1732000000,
+    "bits": "170e0408"
+  },
+  "nonces_to_try": [
+    0,
+    1,
+    42,
+    12345,
+    999999,
+    123456789,
+    2147483647,
+    4294967295
+  ],
+  "log_level": "INFO"
+}
