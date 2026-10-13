@@ -1,4 +1,4 @@
-"""Fetch a candidate (or use an offline header), try guesses, submit a winner."""
+"""Fetch a live candidate, check nonce guesses, and submit a winner."""
 
 from typing import Any, Dict, List, Optional
 
@@ -38,18 +38,15 @@ def check_nonces(config: Dict[str, Any]) -> List[Dict[str, Any]]:
     return results
 
 
-def run(config: Dict[str, Any], submit: bool = False) -> Optional[Dict[str, Any]]:
+def run(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     logger = setup_logger(level=config.get("log_level", "INFO"))
 
-    client = None
-    candidate = None
-    if config.get("worker_url"):
-        client = WorkerClient(config["worker_url"])
-        candidate = client.candidate(config["payout_address"])
-        config = {**config, "block_header_template": candidate["block_header_template"]}
-        logger.info("Live candidate height=%s payouts=%s", candidate["height"], candidate["payouts"])
-    elif submit:
-        raise WorkerError("Offline header examples cannot be submitted; configure worker_url and payout_address")
+    if not config.get("worker_url"):
+        raise WorkerError("Configure worker_url and payout_address to check and submit live blocks")
+    client = WorkerClient(config["worker_url"])
+    candidate = client.candidate(config["payout_address"])
+    config = {**config, "block_header_template": candidate["block_header_template"]}
+    logger.info("Live candidate height=%s payouts=%s", candidate["height"], candidate["payouts"])
 
     results = check_nonces(config)
     winners = [r for r in results if r["solved"]]
@@ -61,11 +58,10 @@ def run(config: Dict[str, Any], submit: bool = False) -> Optional[Dict[str, Any]
     winner = winners[0]
     logger.info("Solving nonce found: %s", winner)
 
-    if submit:
-        result = client.submit(candidate["job"], winner["nonce"])
-        if result.get("accepted") is not True:
-            raise WorkerError(f"Block rejected: {result.get('result', 'unknown response')}")
-        winner["submission"] = result
-        logger.info("Node accepted block %s; rewards still require coinbase maturity.", result["hash"])
+    result = client.submit(candidate["job"], winner["nonce"])
+    if result.get("accepted") is not True:
+        raise WorkerError(f"Block rejected: {result.get('result', 'unknown response')}")
+    winner["submission"] = result
+    logger.info("Node accepted block %s; rewards still require coinbase maturity.", result["hash"])
 
     return winner

@@ -18,11 +18,6 @@ def parse_args() -> argparse.Namespace:
         default="config/miner_config.json",
         help="Path to the JSON config file (default: config/miner_config.json)",
     )
-    parser.add_argument(
-        "--submit",
-        action="store_true",
-        help="If a solving nonce is found, submit it through the Worker.",
-    )
     return parser.parse_args()
 
 
@@ -36,7 +31,7 @@ def main() -> int:
         return 1
 
     try:
-        run(config, submit=args.submit)
+        run(config)
     except (WorkerError, ValueError) as exc:
         print(f"Mining error: {exc}", file=sys.stderr)
         return 1

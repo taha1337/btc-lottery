@@ -1,6 +1,6 @@
 # BTC Lottery
 
-Checks nonce guesses against a Bitcoin block and can submit a winning block through a credential-protected Worker.
+Checks nonce guesses against a live Bitcoin block and automatically submits a winning block through a credential-protected Worker.
 
 Requires Python 3. The Worker is already hosted on Cloudflare.
 
@@ -21,10 +21,6 @@ In `config/miner_config.json`, enter your receiving address in
 python main.py
 ```
 
-Add `--submit` to submit a winning guess:
-
-```powershell
-python main.py --submit
-```
+If a guess solves the block, it is submitted automatically.
 
 The fee is fixed at 5%; the user receives the remaining 95%.
