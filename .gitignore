@@ -16,7 +16,7 @@ venv/
 
 # Local settings
 .env
-config/miner_config.local.json
+config/checker_config.local.json
 node_modules/
 .wrangler/
 .dev.vars*

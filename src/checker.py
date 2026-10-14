@@ -38,7 +38,7 @@ def check_nonces(config: Dict[str, Any]) -> List[Dict[str, Any]]:
     return results
 
 
-def run(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def run_checker(config: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     logger = setup_logger(level=config.get("log_level", "INFO"))
 
     if not config.get("worker_url"):

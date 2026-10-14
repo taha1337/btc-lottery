@@ -1,4 +1,4 @@
-"""Loads and validates the JSON mining config."""
+"""Loads and validates the JSON checker config."""
 
 import json
 from pathlib import Path

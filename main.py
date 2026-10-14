@@ -5,7 +5,7 @@ import argparse
 import sys
 
 from src.config_loader import ConfigError, load_config
-from src.miner import run
+from src.checker import run_checker
 from src.worker_client import WorkerError
 
 
@@ -15,8 +15,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--config",
-        default="config/miner_config.json",
-        help="Path to the JSON config file (default: config/miner_config.json)",
+        default="config/checker_config.json",
+        help="Path to the JSON config file (default: config/checker_config.json)",
     )
     return parser.parse_args()
 
@@ -31,9 +31,9 @@ def main() -> int:
         return 1
 
     try:
-        run(config)
+        run_checker(config)
     except (WorkerError, ValueError) as exc:
-        print(f"Mining error: {exc}", file=sys.stderr)
+        print(f"Checking error: {exc}", file=sys.stderr)
         return 1
     return 0
 
