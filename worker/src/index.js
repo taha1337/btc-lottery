@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { buildBlock, hash256, meetsTarget } from './bitcoin.js';
 import { FEE_BPS, OWNER_BTC_ADDRESS } from './payout.js';
+import { checkHeader, validateNonces, MAX_NONCES } from './check.js';
 
 class ApiError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -39,11 +40,59 @@ export default {
   async fetch(request, env) {
     try {
       const url = new URL(request.url);
-      if (url.pathname === '/' && request.method === 'GET') return json({ service: 'btc-hash-credential-server', endpoints: ['GET /candidate-block?payout_address=...', 'POST /submit-block'] });
-      if (!['/candidate-block', '/submit-block'].includes(url.pathname)) return json({ error: 'Not found' }, 404);
+      if (url.pathname === '/' && request.method === 'GET') return json({ service: 'btc-hash-credential-server', api_version: 2, max_nonces: MAX_NONCES, endpoints: ['GET /candidate-block?payout_address=...', 'POST /submit-block', 'POST /check-nonces'] });
+      if (!['/candidate-block', '/submit-block', '/check-nonces'].includes(url.pathname)) return json({ error: 'Not found' }, 404);
       const method = url.pathname === '/candidate-block' ? 'GET' : 'POST';
       if (request.method !== method) throw new ApiError(405, `Use ${method}`);
       if (!env.BTC_NODE_URL || !env.JOB_SIGNING_SECRET || env.JOB_SIGNING_SECRET.length < 32) throw new ApiError(503, 'Configure BTC_NODE_URL and JOB_SIGNING_SECRET (32+ characters) on the Worker');
+
+      if (url.pathname === '/check-nonces') {
+        if (!request.headers.get('Content-Type')?.startsWith('application/json')) throw new ApiError(415, 'Use application/json');
+        const reader = request.body?.getReader();
+        if (!reader) throw new ApiError(400, 'Request body required');
+        const chunks = []; let size = 0;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          size += value.length;
+          if (size > 4096) { await reader.cancel(); throw new ApiError(413, 'Request too large'); }
+          chunks.push(Buffer.from(value));
+        }
+        let body, nonces;
+        try {
+          body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+          nonces = validateNonces(body?.nonces);
+        } catch (error) { throw new ApiError(400, error instanceof SyntaxError ? 'Invalid JSON' : error.message); }
+        const address = body.payout_address;
+        const userScript = await addressScript(env, address);
+        const ownerScript = await addressScript(env, OWNER_BTC_ADDRESS);
+        const template = await rpc(env, 'getblocktemplate', [{ rules: ['segwit'] }]);
+        const candidate = buildBlock(template, ownerScript, userScript);
+        const results = checkHeader(candidate.block.subarray(0, 80), nonces);
+        const winner = results.find(result => result.solved);
+        const response = {
+          height: template.height, checked: results.length, duplicates_skipped: body.nonces.length - nonces.length,
+          checked_at: new Date().toISOString(), results,
+          payouts: { owner_address: OWNER_BTC_ADDRESS, user_address: address, fee_bps: FEE_BPS,
+            owner_satoshis: candidate.ownerAmount, user_satoshis: candidate.userAmount },
+          submission: { status: 'not_solved' },
+        };
+        if (winner) {
+          if (await rpc(env, 'getbestblockhash') !== template.previousblockhash) {
+            response.submission = { status: 'stale', hash: winner.hash };
+          } else {
+            candidate.block.writeUInt32LE(winner.nonce, 76);
+            try {
+              const result = await rpc(env, 'submitblock', [candidate.block.toString('hex')]);
+              response.submission = { status: result === null ? 'accepted' : 'rejected', hash: winner.hash };
+            } catch {
+              // A timeout does not establish whether the node received the block.
+              response.submission = { status: 'unknown', hash: winner.hash };
+            }
+          }
+        }
+        return json(response);
+      }
 
       if (url.pathname === '/candidate-block') {
         const address = url.searchParams.get('payout_address');

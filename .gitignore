@@ -21,3 +21,13 @@ node_modules/
 .wrangler/
 .dev.vars*
 !.dev.vars.example
+
+# Android
+.tools/
+artifacts/
+android/.gradle/
+android/local.properties
+android/**/build/
+*.jks
+*.keystore
+signing.properties
